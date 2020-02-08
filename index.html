@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<script
+	  src="https://code.jquery.com/jquery-3.4.1.js"
+	  integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
+	  crossorigin="anonymous"></script>
+</head>
+<body>
+	<form enctype="multipart/form-data">
+		<input type="text" id="comment" required="true">
+	   	<input type="file" name="photo" required="true" id="input_file" multiple="multiple" accept="image/*,image/jpeg,png">
+	  	<a href="#" class="upload_files button">Загрузить файлы</a>
+		<div class="ajax-reply"></div>
+	</form>
+<script>
+	var files;
+	$('input[type=file]').on('change', function(){
+		files = this.files;
+		$('.upload_files').on( 'click', function( event ){
+
+			event.stopPropagation(); // остановка всех текущих JS событий
+			event.preventDefault();  // остановка дефолтного события для текущего элемента - клик для <a> тега
+			var input_comment = $("#comment").val();
+			// ничего не делаем если files пустой
+			if( typeof files == 'undefined' ) return;
+			if (input_comment=='') return;
+
+			// создадим объект данных формы
+			var data = new FormData();
+
+			// заполняем объект данных файлами в подходящем для отправки формате
+			$.each( files, function( key, value ){
+				data.append( key, value );
+			});
+
+			// добавим переменную для идентификации запроса
+			data.append( 'my_file_upload', 1 );
+
+
+			var comment = $("#comment").val();
+			data.append( 'comment', comment );
+
+			// AJAX запрос
+			$.ajax({
+				url         : './getData.php',
+				type        : 'POST', 
+				data        : data,
+				cache       : false,
+				dataType    : 'json',
+				// отключаем обработку передаваемых данных, пусть передаются как есть
+				processData : false,
+				// отключаем установку заголовка типа запроса. Так jQuery скажет серверу что это строковой запрос
+				contentType : false, 
+				// функция успешного ответа сервера
+				success     : function( respond, status, jqXHR ){
+					if( typeof respond.error === 'undefined' ){						
+						console.log(respond);
+						getAll();
+					}
+					else {
+						console.log('ОШИБКА: ' + respond.error );
+					}
+				},
+				error: function( jqXHR, status, errorThrown ){
+					console.log( 'ОШИБКА AJAX запроса: ' + status, jqXHR );
+				}
+			});
+		});
+
+	});
+
+function getAll(){
+	$.ajax({
+				url         : './getDataDb.php',
+				type        : 'POST',
+				cache       : false,
+				dataType    : 'json',
+				processData : false,
+				contentType : false, 
+				success     : function( respond, status, jqXHR ){
+					if( typeof respond.error === 'undefined' ){
+						var html = '';
+						$.each( respond, function( key, val ){							 
+							 $.each( val.files, function( key, val ){
+							 	var img = "<img src="+val+" width='30' height='30'>";
+							 	html += img;
+							 })
+							 html += val.comment +'<br><hr>';
+						})
+
+						$('.ajax-reply').html( html );						
+						console.log(respond);
+					}
+					else {
+						console.log('ОШИБКА: ' + respond.error );
+					}
+				},
+				error: function( jqXHR, status, errorThrown ){
+					console.log( 'ОШИБКА AJAX запроса: ' + status, jqXHR );
+				}
+			});
+}
+$( document ).ready(function() {
+    getAll()
+});
+</script>
+</body>
+</html>
